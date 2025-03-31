@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clone e Edite Páginas de Venda</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f5f7fa, #e0eafc);
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    .nav-bar {
+      width: 100%;
+      background: #000;
+      height: 60px;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 95%;
+      padding: 5vw;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    .logo {
+      font-size: clamp(1.5rem, 5vw, 2rem);
+      font-weight: 600;
+      color: #1a237e;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      color: #1a237e;
+      margin-bottom: 20px;
+    }
+
+    .subtitle {
+      font-size: clamp(1rem, 3vw, 1.2rem);
+      color: #757575;
+      margin-bottom: 40px;
+    }
+
+    .input-box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 40px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .input-box input {
+      flex: 1;
+      min-width: 200px;
+      padding: 15px;
+      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .input-box button {
+      padding: 15px 30px;
+      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      color: #fff;
+      background: #6d4c9e;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .input-box button:hover {
+      background: #5a3e7e;
+    }
+
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .feature {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: clamp(250px, 30%, 100%);
+      text-align: left;
+    }
+
+    .feature i {
+      font-size: clamp(2rem, 6vw, 2.5rem);
+      color: #6d4c9e;
+      margin-bottom: 15px;
+    }
+
+    .feature h3 {
+      font-size: clamp(1.2rem, 4vw, 1.5rem);
+      color: #1a237e;
+      margin-bottom: 10px;
+    }
+
+    .feature p {
+      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      color: #757575;
+    }
+
+    #timer-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    #timer {
+      font-size: clamp(1rem, 3vw, 1.1rem);
+      color: #34495e;
+      margin-bottom: 10px;
+    }
+
+    #progress-bar {
+      width: 100%;
+      height: 10px;
+      background: #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+      display: none;
+      border: 1px solid #ccc;
+    }
+
+    #progress {
+      height: 100%;
+      background: #6d4c9e;
+      width: 0;
+      transition: width 0.5s ease;
+    }
+
+    .editor-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .editor-table td {
+      padding: 10px;
+      vertical-align: top;
+    }
+
+    #editable-content {
+      min-height: 400px;
+      width: 100%;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+
+    #editable-content * {
+      outline: none;
+    }
+
+    #editable-content p, #editable-content h1, #editable-content h2, #editable-content h3, #editable-content span {
+      cursor: text;
+    }
+
+    #editable-content a, #editable-content button {
+      cursor: pointer;
+      position: relative;
+    }
+
+    #editable-content a:hover::after, #editable-content button:hover::after {
+      content: "Clique para trocar o link";
+      position: absolute;
+      background: #333;
+      color: #fff;
+      padding: 5px;
+      font-size: clamp(0.7rem, 2vw, 0.8rem);
+      border-radius: 3px;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    .popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    .popup input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    }
+
+    .popup button {
+      padding: 10px 20px;
+      background: #6d4c9e;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .popup button:hover {
+      background: #5a3e7e;
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .action-buttons button {
+      padding: 15px 30px;
+      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #previewBtn {
+      background: #17a2b8;
+    }
+
+    #previewBtn:hover {
+      background: #138496;
+    }
+
+    #downloadBtn {
+      background: #28a745;
+    }
+
+    #downloadBtn:hover {
+      background: #218838;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      font-size: clamp(0.8rem, 2vw, 0.9rem);
+      color: #7f8c8d;
+      padding: 20px;
+      background: #f9f9f9;
+      border-top: 1px solid #e0e0e0;
+      width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 4vw;
+      }
+      .input-box {
+        flex-direction: column;
+      }
+      .input-box input, .input-box button {
+        width: 100%;
+      }
+      .features {
+        flex-direction: column;
+        align-items: center;
+      }
+      .feature {
+        width: 100%;
+      }
+      .action-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 3vw;
+      }
+      h1 {
+        font-size: clamp(1.5rem, 5vw, 2rem);
+      }
+      .subtitle {
+        font-size: clamp(0.9rem, 2.5vw, 1rem);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-bar"></div>
+  <div class="container">
+    <div class="logo">PageClone</div>
+    <h1>Clone Qualquer Página de Vendas</h1>
+    <div class="subtitle">Transforme sua estratégia de marketing com acesso instantâneo a páginas de vendas bem-sucedidas.</div>
+    <div class="input-box">
+      <input type="text" id="url" placeholder="Insira a URL da Página de Vendas">
+      <button id="cloneBtn">Clonar Página →</button>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <i class="fas fa-bolt"></i>
+        <h3>Rápido como um Raio</h3>
+        <p>Clone qualquer página de vendas em segundos com nosso motor otimizado.</p>
+      </div>
+      <div class="feature">
+        <i class="fas fa-eye"></i>
+        <h3>Perfeição nos Detalhes</h3>
+        <p>Obtenha réplicas exatas de páginas de vendas bem-sucedidas.</p>
+      </div>
+      <div class="feature">
+        <i class="fas fa-download"></i>
+        <h3>Exportação Fácil</h3>
+        <p>Baixe suas páginas clonadas em múltiplos formatos.</p>
+      </div>
+    </div>
+    <div id="timer-container">
+      <div id="timer">Aguardando...</div>
+      <div id="progress-bar"><div id="progress"></div></div>
+    </div>
+    <table class="editor-table">
+      <tr>
+        <td>
+          <h3>Visualização e Edição (Clique para apagar texto ou trocar links)</h3>
+          <div id="editable-content" contenteditable="true"></div>
+        </td>
+      </tr>
+    </table>
+    <div class="action-buttons">
+      <button id="previewBtn" style="display: none;">Pré-visualizar</button>
+      <button id="downloadBtn" style="display: none;">Baixar Página Editada</button>
+    </div>
+  </div>
+  <div class="overlay" id="overlay"></div>
+  <div class="popup" id="linkPopup">
+    <h3>Trocar Link do Botão</h3>
+    <input type="text" id="newLink" placeholder="Insira o novo link">
+    <button id="saveLinkBtn">Salvar</button>
+  </div>
+  <footer>Todos os direitos reservados a PageClone - Transformando ideias em realidade desde 2024.</footer>
+
+  <script>
+    let originalHtml = '';
+    let currentButton = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const editableContent = document.getElementById('editable-content');
+      const linkPopup = document.getElementById('linkPopup');
+      const overlay = document.getElementById('overlay');
+      const newLinkInput = document.getElementById('newLink');
+      const saveLinkBtn = document.getElementById('saveLinkBtn');
+
+      editableContent.addEventListener('input', () => {
+        originalHtml = originalHtml.replace(/<body>[\s\S]*<\/body>/i, `<body>${editableContent.innerHTML}</body>`);
+      });
+
+      editableContent.addEventListener('click', (e) => {
+        const target = e.target;
+        if (target.tagName === 'A' || target.tagName === 'BUTTON') {
+          e.preventDefault();
+          currentButton = target;
+          newLinkInput.value = target.href || target.getAttribute('onclick') || '';
+          linkPopup.style.display = 'block';
+          overlay.style.display = 'block';
+        }
+      });
+
+      saveLinkBtn.addEventListener('click', () => {
+        const newLink = newLinkInput.value.trim();
+        if (newLink && currentButton) {
+          if (currentButton.tagName === 'A') {
+            currentButton.href = newLink;
+          } else if (currentButton.tagName === 'BUTTON') {
+            currentButton.setAttribute('onclick', `window.location.href='${newLink}'`);
+          }
+          originalHtml = originalHtml.replace(/<body>[\s\S]*<\/body>/i, `<body>${editableContent.innerHTML}</body>`);
+        }
+        linkPopup.style.display = 'none';
+        overlay.style.display = 'none';
+        currentButton = null;
+      });
+
+      overlay.addEventListener('click', () => {
+        linkPopup.style.display = 'none';
+        overlay.style.display = 'none';
+        currentButton = null;
+      });
+    });
+
+    document.getElementById('cloneBtn').addEventListener('click', async () => {
+      const url = document.getElementById('url').value.trim();
+      if (!url) {
+        alert('Por favor, insira uma URL válida.');
+        return;
+      }
+      const cloneBtn = document.getElementById('cloneBtn');
+      const timerDisplay = document.getElementById('timer');
+      const progressBar = document.getElementById('progress-bar');
+      const progress = document.getElementById('progress');
+      const previewBtn = document.getElementById('previewBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const editableContent = document.getElementById('editable-content');
+
+      cloneBtn.textContent = 'Clonando...';
+      cloneBtn.disabled = true;
+      editableContent.innerHTML = '';
+      timerDisplay.textContent = 'Iniciando clonagem...';
+      progressBar.style.display = 'block';
+      progress.style.width = '0%';
+      previewBtn.style.display = 'none';
+      downloadBtn.style.display = 'none';
+
+      try {
+        const startTime = Date.now();
+        const response = await fetch('/clone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao clonar a página');
+        }
+
+        const data = await response.json();
+        const { html, timeTaken, estimatedTimeout, totalResources } = data;
+
+        let progressPercent = 0;
+        const interval = setInterval(() => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          progressPercent = Math.min((elapsed / estimatedTimeout) * 100, 95);
+          progress.style.width = `${progressPercent}%`;
+
+          if (progressPercent < 30) {
+            timerDisplay.textContent = 'Iniciando clonagem...';
+          } else if (progressPercent < 60) {
+            timerDisplay.textContent = 'Está quase... a ser clonada';
+          } else if (progressPercent < 95) {
+            timerDisplay.textContent = 'Só falta pouco!';
+          }
+        }, 100);
+
+        originalHtml = html;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const bodyContent = doc.querySelector('body').innerHTML || html;
+        editableContent.innerHTML = bodyContent;
+
+        clearInterval(interval);
+        progress.style.width = '100%';
+
+        const frontendTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        timerDisplay.textContent = `Concluído em ${timeTaken}s (frontend: ${frontendTime}s).`;
+        previewBtn.style.display = 'inline-block';
+        downloadBtn.style.display = 'inline-block';
+      } catch (error) {
+        console.error('Erro ao clonar:', error);
+        timerDisplay.textContent = 'Erro ao clonar. Tente novamente.';
+        progress.style.width = '0%';
+      } finally {
+        cloneBtn.textContent = 'Clonar Página →';
+        cloneBtn.disabled = false;
+        setTimeout(() => progressBar.style.display = 'none', 1000);
+      }
+    });
+
+    document.getElementById('previewBtn').addEventListener('click', () => {
+      const editableContent = document.getElementById('editable-content').innerHTML;
+      if (!editableContent) {
+        alert('Nenhuma página clonada para pré-visualizar.');
+        return;
+      }
+      const fullHtml = originalHtml.replace(/<body>[\s\S]*<\/body>/i, `<body>${editableContent}</body>`);
+      const blob = new Blob([fullHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const editableContent = document.getElementById('editable-content').innerHTML;
+      const fullHtml = originalHtml.replace(/<body>[\s\S]*<\/body>/i, `<body>${editableContent}</body>`);
+      const blob = new Blob([fullHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pagina_editada.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+  </html>
