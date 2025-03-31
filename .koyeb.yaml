@@ -1,0 +1,3 @@
+build:
+  run: |
+    apt-get update && apt-get install -y libx11-xcb1 libxcomposite1 libxdamage1 libxi6 libxtst6 libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2
