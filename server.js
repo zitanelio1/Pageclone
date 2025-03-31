@@ -1,5 +1,5 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
@@ -9,7 +9,6 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static('public'));
 
-// Adicionar rota GET para a raiz
 app.get('/', (req, res) => {
   res.sendFile('index.html', { root: 'public' });
 });
@@ -52,13 +51,17 @@ app.post('/clone', async (req, res) => {
   try {
     const browser = await puppeteer.launch({
       headless: true,
+      executablePath: '/usr/bin/google-chrome',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--disable-features=site-per-process'
+        '--disable-features=site-per-process',
+        '--no-zygote',
+        '--disable-blink-features=AutomationControlled',
+        '--window-size=1920,1080'
       ]
     });
     const page = await browser.newPage();
