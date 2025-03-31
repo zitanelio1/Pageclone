@@ -1,7 +1,7 @@
 build:
   run: |
     apt-get update && apt-get install -y libx11-xcb1 libxcomposite1 libxdamage1 libxi6 libxtst6 libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2
-    apt-get install -y wget gnupg
-    wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
-    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-    apt-get update && apt-get install -y google-chrome-stable
+    apt-get install -y wget
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    dpkg -i google-chrome-stable_current_amd64.deb || apt-get install -f -y
+    rm google-chrome-stable_current_amd64.deb
