@@ -4,10 +4,15 @@ const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
 const app = express();
-const port = process.env.PORT || 3000; // Ajustado para 3000
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static('public'));
+
+// Adicionar rota GET para a raiz
+app.get('/', (req, res) => {
+  res.sendFile('index.html', { root: 'public' });
+});
 
 async function fetchWithRetry(url, retries = 3, delay = 1000) {
   for (let i = 0; i < retries; i++) {
