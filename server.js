@@ -17,7 +17,7 @@ async function fetchWithRetry(url, retries = 5, delay = 2000) {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         },
-        timeout: 10000
+        timeout: 10000 // Timeout aumentado para 10 segundos
       });
       if (response.ok) return response;
       throw new Error(`HTTP ${response.status}`);
@@ -47,26 +47,36 @@ app.post('/clone', async (req, res) => {
 
   let browser;
   try {
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
     console.log('Caminho do Chromium configurado:', executablePath);
 
-    // Verifica se o Chromium existe no caminho especificado
     if (!fs.existsSync(executablePath)) {
-      throw new Error(`Chromium não encontrado em ${executablePath}. Verifique a imagem Docker e o caminho do binário.`);
+      throw new Error(`Chromium não encontrado em ${executablePath}. Verifique a instalação no koyeb.yaml.`);
     }
     console.log('Chromium encontrado no caminho especificado.');
 
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      ],
-      executablePath: executablePath
-    });
+    // Tenta lançar o browser com retentativas
+    for (let i = 0; i < 3; i++) {
+      try {
+        browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-features=site-per-process'
+          ],
+          executablePath: executablePath
+        });
+        break; // Sai do loop se bem-sucedido
+      } catch (err) {
+        if (i === 2) throw new Error(`Falha ao lançar o Puppeteer após 3 tentativas: ${err.message}`);
+        console.error(`Tentativa ${i + 1} de lançar o browser falhou: ${err.message}`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
 
     const page = await browser.newPage();
 
@@ -80,7 +90,17 @@ app.post('/clone', async (req, res) => {
       }
     });
 
-    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+    // Tenta carregar a página com retentativas
+    for (let i = 0; i < 3; i++) {
+      try {
+        await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+        break;
+      } catch (err) {
+        if (i === 2) throw new Error(`Falha ao carregar a página após 3 tentativas: ${err.message}`);
+        console.error(`Tentativa ${i + 1} de carregar a página falhou: ${err.message}`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
 
     await page.evaluate(() => {
       return new Promise(resolve => {
@@ -92,10 +112,11 @@ app.post('/clone', async (req, res) => {
     const imageUrls = await page.evaluate(() => {
       const images = Array.from(document.querySelectorAll('img'));
       const lazyImages = Array.from(document.querySelectorAll('[data-src], [data-lazy-src]'));
-      return [
+      const allImages = [
         ...images.map(img => img.src),
         ...lazyImages.map(img => img.getAttribute('data-src') || img.getAttribute('data-lazy-src'))
-      ].filter(src => src && !src.startsWith('data:'));
+      ];
+      return allImages.filter(src => src && !src.startsWith('data:'));
     });
 
     let html = await page.content();
@@ -137,12 +158,18 @@ app.post('/clone', async (req, res) => {
       applyLinkTags: true,
       removeStyleTags: false,
       preserveFontFaces: true,
-      preserveImportant: true
+      preserveImportant: true,
+      preserveMediaQueries: true,
+      preservePseudoElements: true
     });
 
     const $ = cheerio.load(html, { decodeEntities: false });
 
     const images = $('img');
+    const elementsWithBg = $('[style]').filter((i, elem) => $(elem).attr('style').includes('background-image'));
+    const totalResources = images.length + elementsWithBg.length + styles.externalStyles.length + imageUrls.length;
+    const dynamicTimeout = Math.min(Math.max(totalResources * 1000, 10000), 60000);
+
     const imagePromises = [];
     images.each((i, img) => {
       const src = $(img).attr('src') || $(img).attr('data-src') || $(img).attr('data-lazy-src');
@@ -164,6 +191,43 @@ app.post('/clone', async (req, res) => {
       }
     });
 
+    imageUrls.forEach(imageUrl => {
+      if (!imageUrl.startsWith('data:')) {
+        const resolvedImageUrl = new URL(imageUrl, url).href;
+        imagePromises.push(
+          (async () => {
+            try {
+              const response = await fetchWithRetry(resolvedImageUrl);
+              const dataUrl = await resourceToDataURL(response);
+              $(`img[src="${imageUrl}"], img[data-src="${imageUrl}"], img[data-lazy-src="${imageUrl}"]`).attr('src', dataUrl);
+            } catch (err) {
+              console.error(`Erro ao inlinear imagem dinâmica ${imageUrl}: ${err.message}`);
+            }
+          })()
+        );
+      }
+    });
+
+    elementsWithBg.each((i, elem) => {
+      const style = $(elem).attr('style');
+      const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
+      if (match && !match[1].startsWith('data:')) {
+        const bgUrl = new URL(match[1], url).href;
+        imagePromises.push(
+          (async () => {
+            try {
+              const response = await fetchWithRetry(bgUrl);
+              const dataUrl = await resourceToDataURL(response);
+              const newStyle = style.replace(match[0], `url(${dataUrl})`);
+              $(elem).attr('style', newStyle);
+            } catch (err) {
+              console.error(`Erro ao inlinear background ${bgUrl}: ${err.message}`);
+            }
+          })()
+        );
+      }
+    });
+
     await Promise.all(imagePromises);
 
     $('script').remove();
@@ -174,8 +238,15 @@ app.post('/clone', async (req, res) => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Página Clonada</title>
-        <style>${styles.inlineStyles}\n${externalStylesContent}\n${styles.fontFaces}</style>
+        <title>Página Editada</title>
+        <style>
+          body { margin: 0; padding: 0; }
+          h1, h2, h3 { font-family: 'Poppins', sans-serif; }
+          img { max-width: 100%; height: auto; display: block; }
+          .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+          p { line-height: 1.6; }
+          ${styles.inlineStyles}\n${externalStylesContent}\n${styles.fontFaces}
+        </style>
       </head>
       <body>
         ${$.html('body')}
@@ -186,8 +257,14 @@ app.post('/clone', async (req, res) => {
     await browser.close();
     const endTime = Date.now();
     const timeTaken = (endTime - startTime) / 1000;
+    console.log(`Clonagem concluída em ${timeTaken} segundos para ${totalResources} recursos.`);
 
-    res.json({ html: finalHtml, timeTaken: timeTaken.toFixed(2) });
+    res.json({
+      html: finalHtml,
+      timeTaken: timeTaken.toFixed(2),
+      estimatedTimeout: (dynamicTimeout / 1000).toFixed(2),
+      totalResources
+    });
   } catch (error) {
     console.error('Erro ao clonar:', error);
     if (browser) await browser.close();
