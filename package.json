@@ -1,19 +1,25 @@
 {
-  "name": "pageclone",
+  "name": "clonador",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.1",
-    "puppeteer-core": "^22.0.0",
-    "juice": "^8.0.0",
-    "cheerio": "^1.0.0-rc.10",
-    "node-fetch": "^2.6.1"
-  }
+    "abort-controller": "^3.0.0",
+    "axios": "^1.8.4",
+    "cheerio": "^1.0.0",
+    "express": "^4.21.2",
+    "juice": "^11.0.1",
+    "node-fetch": "^2.7.0",
+    "p-limit": "^6.2.0",
+    "puppeteer": "^24.4.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "description": ""
 }
