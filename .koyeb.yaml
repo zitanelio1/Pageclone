@@ -1,10 +1,17 @@
-build:
-  run: |
-    apt-get update && apt-get install -y libx11-xcb1 libxcomposite1 libxdamage1 libxi6 libxtst6 libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2
-    apt-get install -y wget
-    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-    dpkg -i google-chrome-stable_current_amd64.deb || apt-get install -f -y
-    rm google-chrome-stable_current_amd64.deb
-    npm install
-    npm install --package-lock-only
-    npm ci
+version: '1'
+services:
+  - name: clonador
+    image: node:18
+    commands:
+      - name: install-dependencies
+        command: npm ci
+      - name: install-chrome
+        command: bash install-chrome.sh
+      - name: start-app
+        command: npm start
+    environment:
+      - name: PORT
+        value: 3000
+    ports:
+      - port: 3000
+        protocol: http
