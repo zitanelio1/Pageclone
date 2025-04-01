@@ -1,17 +1,13 @@
 const express = require('express');
-const puppeteer = require('puppeteer-core');
+const puppeteer = require('puppeteer');
 const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000; // Alterado para 3000
 
 app.use(express.json());
 app.use(express.static('public'));
-
-app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: 'public' });
-});
 
 async function fetchWithRetry(url, retries = 3, delay = 1000) {
   for (let i = 0; i < retries; i++) {
@@ -20,7 +16,7 @@ async function fetchWithRetry(url, retries = 3, delay = 1000) {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         },
-        timeout: 5000
+        timeout: 5000 // Timeout de 5 segundos por recurso
       });
       if (response.ok) return response;
       throw new Error(`HTTP ${response.status}`);
@@ -51,21 +47,18 @@ app.post('/clone', async (req, res) => {
   try {
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: '/usr/bin/google-chrome',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--disable-features=site-per-process',
-        '--no-zygote',
-        '--disable-blink-features=AutomationControlled',
-        '--window-size=1920,1080'
+        '--disable-features=site-per-process'
       ]
     });
     const page = await browser.newPage();
 
+    // Otimizar carregamento da página
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const resourceType = req.resourceType();
@@ -76,14 +69,16 @@ app.post('/clone', async (req, res) => {
       }
     });
 
+    // Aumentar o tempo de espera e executar scripts para carregar elementos dinâmicos
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
     await page.evaluate(() => {
       return new Promise(resolve => {
         window.scrollTo(0, document.body.scrollHeight);
-        setTimeout(resolve, 3000);
+        setTimeout(resolve, 3000); // Aumentei para 3 segundos para garantir carregamento de imagens dinâmicas
       });
     });
 
+    // Capturar todas as imagens (estáticas e dinâmicas)
     const imageUrls = await page.evaluate(() => {
       const images = Array.from(document.querySelectorAll('img'));
       const lazyImages = Array.from(document.querySelectorAll('[data-src], [data-lazy-src]'));
@@ -128,6 +123,7 @@ app.post('/clone', async (req, res) => {
     });
     const externalStylesContent = (await Promise.all(stylePromises)).join('\n');
 
+    // Inlinear todos os estilos para preservar o layout 100%
     html = juice(html + `<style>${styles.inlineStyles}\n${externalStylesContent}\n${styles.fontFaces}</style>`, {
       applyStyleTags: true,
       applyLinkTags: true,
@@ -135,7 +131,7 @@ app.post('/clone', async (req, res) => {
       preserveFontFaces: true,
       preserveImportant: true,
       preserveMediaQueries: true,
-      preservePseudoElements: true
+      preservePseudoElements: true // Preservar pseudo-elementos que podem afetar o layout
     });
 
     const $ = cheerio.load(html, { decodeEntities: false });
@@ -146,6 +142,7 @@ app.post('/clone', async (req, res) => {
     const dynamicTimeout = Math.min(Math.max(totalResources * 1000, 10000), 60000);
 
     const imagePromises = [];
+    // Inlinear imagens do HTML
     images.each((i, img) => {
       const src = $(img).attr('src') || $(img).attr('data-src') || $(img).attr('data-lazy-src');
       if (src && !src.startsWith('data:')) {
@@ -166,6 +163,7 @@ app.post('/clone', async (req, res) => {
       }
     });
 
+    // Inlinear imagens dinâmicas capturadas via JavaScript
     imageUrls.forEach(imageUrl => {
       if (!imageUrl.startsWith('data:')) {
         const resolvedImageUrl = new URL(imageUrl, url).href;
@@ -183,6 +181,7 @@ app.post('/clone', async (req, res) => {
       }
     });
 
+    // Inlinear backgrounds
     elementsWithBg.each((i, elem) => {
       const style = $(elem).attr('style');
       const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
@@ -205,6 +204,7 @@ app.post('/clone', async (req, res) => {
 
     await Promise.all(imagePromises);
 
+    // Remover scripts para evitar interferências no layout
     $('script').remove();
 
     const finalHtml = `
@@ -215,15 +215,12 @@ app.post('/clone', async (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Página Editada</title>
         <style>
-          body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+          body { margin: 0; padding: 0; }
           h1, h2, h3 { font-family: 'Poppins', sans-serif; }
           img { max-width: 100%; height: auto; display: block; }
-          .container { max-width: 1200px; margin: 0 auto; padding: 2vw; width: 100%; box-sizing: border-box; }
+          .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
           p { line-height: 1.6; }
           ${styles.inlineStyles}\n${externalStylesContent}\n${styles.fontFaces}
-          @media (max-width: 768px) {
-            .container { padding: 4vw; }
-          }
         </style>
       </head>
       <body>
@@ -249,6 +246,6 @@ app.post('/clone', async (req, res) => {
   }
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Servidor rodando em http://0.0.0.0:${port}`);
+app.listen(port, () => {
+  console.log(`Servidor rodando em http://localhost:${port}`);
 });
