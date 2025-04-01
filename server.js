@@ -3,8 +3,6 @@ const puppeteer = require('puppeteer');
 const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
-const fs = require('fs');
-const { execSync } = require('child_process');
 
 const app = express();
 
@@ -37,54 +35,31 @@ async function resourceToDataURL(response) {
   return `data:${mime};base64,${base64}`;
 }
 
-// Busca dinâmica do Chromium no sistema
-function findChromiumPath() {
-  try {
-    const result = execSync('find / -name "chromium" 2>/dev/null').toString().trim().split('\n');
-    const validPaths = result.filter(path => fs.existsSync(path) && fs.statSync(path).isFile());
-    return validPaths.length > 0 ? validPaths[0] : null;
-  } catch (err) {
-    console.error('Erro ao buscar Chromium com find:', err);
-    return null;
-  }
-}
-
-const possibleChromiumPaths = [
-  process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/lib/chromium/chromium',
-  '/usr/bin/chromium',
-  '/usr/lib/chromium/chromium',
-  '/usr/bin/chromium-browser',
-  '/usr/lib/chromium-browser/chromium-browser',
-  findChromiumPath() // Adiciona o caminho dinâmico
-].filter(Boolean);
-
 async function launchBrowserWithRetry() {
-  for (let path of possibleChromiumPaths) {
-    console.log(`Tentando Chromium em: ${path}`);
-    if (fs.existsSync(path)) {
-      try {
-        const browser = await puppeteer.launch({
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--disable-features=site-per-process'
-          ],
-          executablePath: path
-        });
-        console.log(`Chromium encontrado e iniciado em: ${path}`);
-        return browser;
-      } catch (err) {
-        console.error(`Falha ao iniciar Chromium em ${path}: ${err.message}`);
-      }
-    } else {
-      console.log(`Chromium não encontrado em: ${path}`);
+  let browser;
+  let attempts = 0;
+  while (!browser) { // Tenta lançar o browser infinitamente até成功
+    attempts++;
+    console.log(`Tentativa ${attempts} de lançar o browser...`);
+    try {
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-features=site-per-process'
+        ]
+      });
+      console.log('Browser iniciado com sucesso.');
+    } catch (err) {
+      console.error(`Falha ao lançar o browser na tentativa ${attempts}: ${err.message}`);
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Espera 5 segundos antes de tentar novamente
     }
   }
-  throw new Error('Nenhum caminho válido para o Chromium encontrado.');
+  return browser;
 }
 
 app.post('/clone', async (req, res) => {
@@ -98,7 +73,7 @@ app.post('/clone', async (req, res) => {
 
   let browser;
   let attempts = 0;
-  while (true) { // Loop infinito até sucesso
+  while (true) { // Loop infinito até clonar com sucesso
     attempts++;
     console.log(`Tentativa ${attempts} de clonagem...`);
     try {
