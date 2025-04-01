@@ -3,7 +3,8 @@ const puppeteer = require('puppeteer');
 const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
-const fs = require('fs'); // Adicionado para diagnóstico
+const fs = require('fs');
+const path = require('path'); // Adicionado para manipular caminhos
 
 const app = express();
 
@@ -17,7 +18,7 @@ async function fetchWithRetry(url, retries = 3, delay = 1000) {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         },
-        timeout: 5000 // Timeout de 5 segundos por recurso
+        timeout: 5000
       });
       if (response.ok) return response;
       throw new Error(`HTTP ${response.status}`);
@@ -36,6 +37,24 @@ async function resourceToDataURL(response) {
   return `data:${mime};base64,${base64}`;
 }
 
+// Função para encontrar o caminho do Chromium dinamicamente
+function getChromiumPath() {
+  const cacheDir = process.env.PUPPETEER_CACHE_DIR || '/app/.cache/puppeteer';
+  const chromeDir = path.join(cacheDir, 'chrome');
+  try {
+    const linuxDir = fs.readdirSync(chromeDir).find(dir => dir.startsWith('linux-'));
+    if (linuxDir) {
+      const executablePath = path.join(chromeDir, linuxDir, 'chrome-linux', 'chrome');
+      console.log('Caminho do Chromium encontrado:', executablePath);
+      return executablePath;
+    }
+  } catch (err) {
+    console.error('Erro ao buscar caminho do Chromium:', err);
+  }
+  console.log('Nenhum Chromium encontrado em', chromeDir);
+  return null;
+}
+
 app.post('/clone', async (req, res) => {
   const url = req.body.url;
   if (!url) {
@@ -46,14 +65,11 @@ app.post('/clone', async (req, res) => {
   console.log(`Iniciando clonagem da URL: ${url}`);
 
   try {
-    // Diagnóstico do caminho do Chromium
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/app/.cache/puppeteer/chrome/linux-*/chrome-linux/chrome';
-    console.log('Caminho do Chromium configurado:', executablePath);
-    if (fs.existsSync(executablePath)) {
-      console.log('Chromium encontrado no caminho especificado.');
-    } else {
-      console.log('Chromium NÃO encontrado no caminho especificado.');
+    const executablePath = getChromiumPath();
+    if (!executablePath || !fs.existsSync(executablePath)) {
+      throw new Error('Chromium não encontrado no caminho esperado.');
     }
+    console.log('Chromium encontrado no caminho especificado.');
 
     const browser = await puppeteer.launch({
       headless: true,
@@ -65,11 +81,10 @@ app.post('/clone', async (req, res) => {
         '--disable-gpu',
         '--disable-features=site-per-process'
       ],
-      executablePath: executablePath // Adicionado para usar o Chromium instalado
+      executablePath: executablePath
     });
     const page = await browser.newPage();
 
-    // Otimizar carregamento da página
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const resourceType = req.resourceType();
@@ -80,16 +95,14 @@ app.post('/clone', async (req, res) => {
       }
     });
 
-    // Aumentar o tempo de espera e executar scripts para carregar elementos dinâmicos
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
     await page.evaluate(() => {
       return new Promise(resolve => {
         window.scrollTo(0, document.body.scrollHeight);
-        setTimeout(resolve, 3000); // Aumentei para 3 segundos para garantir carregamento de imagens dinâmicas
+        setTimeout(resolve, 3000);
       });
     });
 
-    // Capturar todas as imagens (estáticas e dinâmicas)
     const imageUrls = await page.evaluate(() => {
       const images = Array.from(document.querySelectorAll('img'));
       const lazyImages = Array.from(document.querySelectorAll('[data-src], [data-lazy-src]'));
@@ -134,7 +147,6 @@ app.post('/clone', async (req, res) => {
     });
     const externalStylesContent = (await Promise.all(stylePromises)).join('\n');
 
-    // Inlinear todos os estilos para preservar o layout 100%
     html = juice(html + `<style>${styles.inlineStyles}\n${externalStylesContent}\n${styles.fontFaces}</style>`, {
       applyStyleTags: true,
       applyLinkTags: true,
@@ -153,7 +165,6 @@ app.post('/clone', async (req, res) => {
     const dynamicTimeout = Math.min(Math.max(totalResources * 1000, 10000), 60000);
 
     const imagePromises = [];
-    // Inlinear imagens do HTML
     images.each((i, img) => {
       const src = $(img).attr('src') || $(img).attr('data-src') || $(img).attr('data-lazy-src');
       if (src && !src.startsWith('data:')) {
@@ -174,7 +185,6 @@ app.post('/clone', async (req, res) => {
       }
     });
 
-    // Inlinear imagens dinâmicas capturadas via JavaScript
     imageUrls.forEach(imageUrl => {
       if (!imageUrl.startsWith('data:')) {
         const resolvedImageUrl = new URL(imageUrl, url).href;
@@ -192,7 +202,6 @@ app.post('/clone', async (req, res) => {
       }
     });
 
-    // Inlinear backgrounds
     elementsWithBg.each((i, elem) => {
       const style = $(elem).attr('style');
       const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
@@ -215,7 +224,6 @@ app.post('/clone', async (req, res) => {
 
     await Promise.all(imagePromises);
 
-    // Remover scripts para evitar interferências no layout
     $('script').remove();
 
     const finalHtml = `
@@ -257,7 +265,7 @@ app.post('/clone', async (req, res) => {
   }
 });
 
-const port = process.env.PORT || 3000; // Ajustado para usar variável de ambiente
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
