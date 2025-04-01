@@ -3,11 +3,14 @@ services:
   - name: clonador
     type: web
     docker:
-      image: ghcr.io/puppeteer/puppeteer:latest  # Imagem oficial com Node.js e Puppeteer
+      image: ghcr.io/puppeteer/puppeteer:latest  # Imagem oficial com Node.js e Chromium embutido
       build:
         commands:
           - npm ci  # Instala dependências do package-lock.json
-          - npx puppeteer browsers install chrome  # Força a instalação do Chrome
+          - echo "Instalando Chrome explicitamente..."
+          - npx puppeteer browsers install chrome || echo "Falha ao instalar Chrome"
+          - echo "Verificando Chrome instalado:"
+          - ls -la /tmp/puppeteer_cache || echo "Diretório /tmp/puppeteer_cache não encontrado"
       run:
         command: npm start
     ports:
@@ -17,6 +20,6 @@ services:
       - name: PORT
         value: 3000
       - name: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: "true"  # Evita download duplicado (embora a instalação seja forçada)
+        value: "true"  # Evita download duplicado
       - name: PUPPETEER_CACHE_DIR
         value: /tmp/puppeteer_cache  # Diretório gravável para o cache
