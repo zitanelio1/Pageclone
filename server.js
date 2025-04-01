@@ -10,14 +10,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-async function fetchWithRetry(url, retries = 3, delay = 1000) {
+async function fetchWithRetry(url, retries = 5, delay = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         },
-        timeout: 5000
+        timeout: 10000
       });
       if (response.ok) return response;
       throw new Error(`HTTP ${response.status}`);
@@ -45,26 +45,39 @@ app.post('/clone', async (req, res) => {
   const startTime = Date.now();
   console.log(`Iniciando clonagem da URL: ${url}`);
 
+  let browser;
   try {
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome';
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
     console.log('Caminho do Chromium configurado:', executablePath);
+
     if (!fs.existsSync(executablePath)) {
       throw new Error(`Chromium não encontrado em ${executablePath}`);
     }
     console.log('Chromium encontrado no caminho especificado.');
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-features=site-per-process'
-      ],
-      executablePath: executablePath
-    });
+    // Tenta lançar o browser com retentativas
+    for (let i = 0; i < 3; i++) {
+      try {
+        browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-features=site-per-process'
+          ],
+          executablePath: executablePath
+        });
+        break; // Se der certo, sai do loop
+      } catch (err) {
+        if (i === 2) throw new Error(`Falha ao lançar o Puppeteer após 3 tentativas: ${err.message}`);
+        console.error(`Tentativa ${i + 1} de lançar o browser falhou: ${err.message}`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+
     const page = await browser.newPage();
 
     await page.setRequestInterception(true);
@@ -77,7 +90,18 @@ app.post('/clone', async (req, res) => {
       }
     });
 
-    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+    // Tenta carregar a página com retentativas
+    for (let i = 0; i < 3; i++) {
+      try {
+        await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+        break;
+      } catch (err) {
+        if (i === 2) throw new Error(`Falha ao carregar a página após 3 tentativas: ${err.message}`);
+        console.error(`Tentativa ${i + 1} de carregar a página falhou: ${err.message}`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+
     await page.evaluate(() => {
       return new Promise(resolve => {
         window.scrollTo(0, document.body.scrollHeight);
@@ -243,6 +267,7 @@ app.post('/clone', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao clonar:', error);
+    if (browser) await browser.close();
     res.status(500).send(`Erro ao clonar a página: ${error.message}`);
   }
 });
