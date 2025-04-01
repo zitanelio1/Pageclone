@@ -3,6 +3,7 @@ const puppeteer = require('puppeteer');
 const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
+const fs = require('fs');
 
 const app = express();
 
@@ -38,7 +39,7 @@ async function resourceToDataURL(response) {
 async function launchBrowserWithRetry() {
   let browser;
   let attempts = 0;
-  while (!browser) { // Tenta lançar o browser infinitamente até成功
+  while (!browser) { // Tenta lançar o browser infinitamente até sucesso
     attempts++;
     console.log(`Tentativa ${attempts} de lançar o browser...`);
     try {
@@ -51,7 +52,9 @@ async function launchBrowserWithRetry() {
           '--disable-dev-shm-usage',
           '--disable-gpu',
           '--disable-features=site-per-process'
-        ]
+        ],
+        // Usa o Chrome instalado no cache
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null
       });
       console.log('Browser iniciado com sucesso.');
     } catch (err) {
@@ -210,7 +213,7 @@ app.post('/clone', async (req, res) => {
       });
 
       elementsWithBg.each((i, elem) => {
-        const style = $(elem).attr('style');
+        const style = $(img).attr('style');
         const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
         if (match && !match[1].startsWith('data:')) {
           const bgUrl = new URL(match[1], url).href;
