@@ -21,8 +21,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 100%;
-      overflow-x: hidden;
     }
 
     .nav-bar {
@@ -33,14 +31,13 @@
 
     .container {
       max-width: 1200px;
-      width: 95%;
-      padding: 5vw;
+      width: 100%;
+      padding: 40px;
       text-align: center;
-      box-sizing: border-box;
     }
 
     .logo {
-      font-size: clamp(1.5rem, 5vw, 2rem);
+      font-size: 2rem;
       font-weight: 600;
       color: #1a237e;
       text-align: left;
@@ -48,13 +45,13 @@
     }
 
     h1 {
-      font-size: clamp(1.8rem, 6vw, 3rem);
+      font-size: 3rem;
       color: #1a237e;
       margin-bottom: 20px;
     }
 
     .subtitle {
-      font-size: clamp(1rem, 3vw, 1.2rem);
+      font-size: 1.2rem;
       color: #757575;
       margin-bottom: 40px;
     }
@@ -66,7 +63,6 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       margin-bottom: 40px;
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
       align-items: center;
       gap: 20px;
@@ -74,9 +70,8 @@
 
     .input-box input {
       flex: 1;
-      min-width: 200px;
       padding: 15px;
-      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      font-size: 1rem;
       border: 2px solid #e0e0e0;
       border-radius: 8px;
       outline: none;
@@ -84,7 +79,7 @@
 
     .input-box button {
       padding: 15px 30px;
-      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      font-size: 1rem;
       color: #fff;
       background: #6d4c9e;
       border: none;
@@ -99,9 +94,7 @@
 
     .features {
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-around;
-      gap: 20px;
       margin-bottom: 40px;
     }
 
@@ -110,24 +103,24 @@
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      width: clamp(250px, 30%, 100%);
+      width: 30%;
       text-align: left;
     }
 
     .feature i {
-      font-size: clamp(2rem, 6vw, 2.5rem);
+      font-size: 2.5rem;
       color: #6d4c9e;
       margin-bottom: 15px;
     }
 
     .feature h3 {
-      font-size: clamp(1.2rem, 4vw, 1.5rem);
+      font-size: 1.5rem;
       color: #1a237e;
       margin-bottom: 10px;
     }
 
     .feature p {
-      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      font-size: 1rem;
       color: #757575;
     }
 
@@ -137,7 +130,7 @@
     }
 
     #timer {
-      font-size: clamp(1rem, 3vw, 1.1rem);
+      font-size: 1.1rem;
       color: #34495e;
       margin-bottom: 10px;
     }
@@ -181,7 +174,6 @@
       border-radius: 8px;
       padding: 10px;
       overflow-y: auto;
-      box-sizing: border-box;
     }
 
     #editable-content * {
@@ -203,7 +195,7 @@
       background: #333;
       color: #fff;
       padding: 5px;
-      font-size: clamp(0.7rem, 2vw, 0.8rem);
+      font-size: 0.8rem;
       border-radius: 3px;
       top: -25px;
       left: 50%;
@@ -222,8 +214,6 @@
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       z-index: 1000;
-      width: 90%;
-      max-width: 400px;
     }
 
     .popup input {
@@ -260,7 +250,6 @@
 
     .action-buttons {
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
       gap: 20px;
       margin-top: 20px;
@@ -268,7 +257,7 @@
 
     .action-buttons button {
       padding: 15px 30px;
-      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      font-size: 1rem;
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -294,7 +283,7 @@
     footer {
       text-align: center;
       margin-top: 30px;
-      font-size: clamp(0.8rem, 2vw, 0.9rem);
+      font-size: 0.9rem;
       color: #7f8c8d;
       padding: 20px;
       background: #f9f9f9;
@@ -302,9 +291,18 @@
       width: 100%;
     }
 
+    /* Media Queries para Responsividade */
     @media (max-width: 768px) {
       .container {
-        padding: 4vw;
+        padding: 20px;
+      }
+      .features {
+        flex-direction: column;
+        align-items: center;
+      }
+      .feature {
+        width: 80%;
+        margin-bottom: 20px;
       }
       .input-box {
         flex-direction: column;
@@ -312,34 +310,31 @@
       .input-box input, .input-box button {
         width: 100%;
       }
-      .features {
-        flex-direction: column;
-        align-items: center;
-      }
-      .feature {
-        width: 100%;
-      }
       .action-buttons {
         flex-direction: column;
-        align-items: center;
+      }
+      .action-buttons button {
+        width: 100%;
+        margin-bottom: 10px;
       }
     }
 
     @media (max-width: 480px) {
-      .container {
-        padding: 3vw;
-      }
       h1 {
-        font-size: clamp(1.5rem, 5vw, 2rem);
+        font-size: 2rem;
       }
       .subtitle {
-        font-size: clamp(0.9rem, 2.5vw, 1rem);
+        font-size: 1rem;
+      }
+      .logo {
+        font-size: 1.5rem;
       }
     }
   </style>
 </head>
 <body>
   <div class="nav-bar"></div>
+
   <div class="container">
     <div class="logo">PageClone</div>
     <h1>Clone Qualquer Página de Vendas</h1>
@@ -382,12 +377,14 @@
       <button id="downloadBtn" style="display: none;">Baixar Página Editada</button>
     </div>
   </div>
+
   <div class="overlay" id="overlay"></div>
   <div class="popup" id="linkPopup">
     <h3>Trocar Link do Botão</h3>
     <input type="text" id="newLink" placeholder="Insira o novo link">
     <button id="saveLinkBtn">Salvar</button>
   </div>
+
   <footer>Todos os direitos reservados a PageClone - Transformando ideias em realidade desde 2024.</footer>
 
   <script>
@@ -401,10 +398,13 @@
       const newLinkInput = document.getElementById('newLink');
       const saveLinkBtn = document.getElementById('saveLinkBtn');
 
+      // Permitir edição de texto
       editableContent.addEventListener('input', () => {
+        // Atualizar o HTML editado
         originalHtml = originalHtml.replace(/<body>[\s\S]*<\/body>/i, `<body>${editableContent.innerHTML}</body>`);
       });
 
+      // Detectar cliques em botões ou links para abrir o pop-up
       editableContent.addEventListener('click', (e) => {
         const target = e.target;
         if (target.tagName === 'A' || target.tagName === 'BUTTON') {
@@ -416,6 +416,7 @@
         }
       });
 
+      // Salvar novo link
       saveLinkBtn.addEventListener('click', () => {
         const newLink = newLinkInput.value.trim();
         if (newLink && currentButton) {
@@ -431,6 +432,7 @@
         currentButton = null;
       });
 
+      // Fechar pop-up ao clicar fora
       overlay.addEventListener('click', () => {
         linkPopup.style.display = 'none';
         overlay.style.display = 'none';
@@ -454,7 +456,7 @@
 
       cloneBtn.textContent = 'Clonando...';
       cloneBtn.disabled = true;
-      editableContent.innerHTML = '';
+      editableContent.innerHTML = ''; // Limpar o conteúdo
       timerDisplay.textContent = 'Iniciando clonagem...';
       progressBar.style.display = 'block';
       progress.style.width = '0%';
@@ -482,6 +484,7 @@
           progressPercent = Math.min((elapsed / estimatedTimeout) * 100, 95);
           progress.style.width = `${progressPercent}%`;
 
+          // Mensagens dinâmicas com base no progresso
           if (progressPercent < 30) {
             timerDisplay.textContent = 'Iniciando clonagem...';
           } else if (progressPercent < 60) {
@@ -491,6 +494,7 @@
           }
         }, 100);
 
+        // Armazenar o HTML original e extrair o corpo para a tabela editável
         originalHtml = html;
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
@@ -542,4 +546,4 @@
     });
   </script>
 </body>
-  </html>
+</html>
