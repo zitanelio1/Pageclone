@@ -4,7 +4,6 @@ const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
 const fs = require('fs');
-const path = require('path'); // Adicionado para manipular caminhos
 
 const app = express();
 
@@ -37,24 +36,6 @@ async function resourceToDataURL(response) {
   return `data:${mime};base64,${base64}`;
 }
 
-// Função para encontrar o caminho do Chromium dinamicamente
-function getChromiumPath() {
-  const cacheDir = process.env.PUPPETEER_CACHE_DIR || '/app/.cache/puppeteer';
-  const chromeDir = path.join(cacheDir, 'chrome');
-  try {
-    const linuxDir = fs.readdirSync(chromeDir).find(dir => dir.startsWith('linux-'));
-    if (linuxDir) {
-      const executablePath = path.join(chromeDir, linuxDir, 'chrome-linux', 'chrome');
-      console.log('Caminho do Chromium encontrado:', executablePath);
-      return executablePath;
-    }
-  } catch (err) {
-    console.error('Erro ao buscar caminho do Chromium:', err);
-  }
-  console.log('Nenhum Chromium encontrado em', chromeDir);
-  return null;
-}
-
 app.post('/clone', async (req, res) => {
   const url = req.body.url;
   if (!url) {
@@ -65,9 +46,10 @@ app.post('/clone', async (req, res) => {
   console.log(`Iniciando clonagem da URL: ${url}`);
 
   try {
-    const executablePath = getChromiumPath();
-    if (!executablePath || !fs.existsSync(executablePath)) {
-      throw new Error('Chromium não encontrado no caminho esperado.');
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome';
+    console.log('Caminho do Chromium configurado:', executablePath);
+    if (!fs.existsSync(executablePath)) {
+      throw new Error(`Chromium não encontrado em ${executablePath}`);
     }
     console.log('Chromium encontrado no caminho especificado.');
 
