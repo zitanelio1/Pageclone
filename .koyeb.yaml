@@ -3,15 +3,18 @@ services:
   - name: clonador
     type: web
     docker:
-      image: node:18  # Imagem base robusta com Node.js
+      image: node:18  # Base Debian para compatibilidade com apt-get
       build:
         commands:
           - apt-get update
-          - apt-get install -y chromium  # Instala o Chromium (Debian-based)
+          - apt-get install -y chromium  # Instala o Chromium
+          - apt-get install -y findutils  # Para usar o comando 'find'
           - npm ci  # Instala dependências do package-lock.json
-          - echo "Caminho do Chromium:" && which chromium  # Loga o caminho
-          - ls -la /usr/bin/chromium || echo "Chromium não encontrado em /usr/bin/chromium"  # Debug
-          - ls -la /usr/lib/chromium/chromium || echo "Chromium não encontrado em /usr/lib/chromium/chromium"  # Debug
+          - echo "Verificando Chromium após instalação:"
+          - which chromium || echo "which chromium falhou"
+          - ls -la /usr/lib/chromium/chromium || echo "Chromium não encontrado em /usr/lib/chromium/chromium"
+          - ls -la /usr/bin/chromium || echo "Chromium não encontrado em /usr/bin/chromium"
+          - find / -name "chromium" 2>/dev/null || echo "Chromium não encontrado em nenhum lugar"
       run:
         command: npm start
     ports:
@@ -21,6 +24,6 @@ services:
       - name: PORT
         value: 3000
       - name: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: "true"  # Evita download adicional
+        value: "true"
       - name: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/lib/chromium/chromium  # Caminho padrão em Debian
+        value: /usr/lib/chromium/chromium  # Padrão no Debian
