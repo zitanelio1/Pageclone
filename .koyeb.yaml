@@ -3,12 +3,12 @@ services:
   - name: clonador
     type: web
     docker:
-      image: zenika/alpine-chrome:with-node  # Imagem com Node.js e Chromium
+      image: node:18-alpine  # Imagem leve com Node.js
       build:
         commands:
-          - apk add --no-cache curl
-          - curl -sL https://npmjs.org/install.sh | sh
-          - npm install
+          - apk add --no-cache chromium  # Instala o Chromium
+          - npm ci  # Instala dependências do package-lock.json
+          - echo "Caminho do Chromium:" && which chromium  # Loga o caminho do Chromium
       run:
         command: npm start
     ports:
@@ -18,6 +18,6 @@ services:
       - name: PORT
         value: 3000
       - name: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: "true"  # Evita que o Puppeteer tente baixar o Chromium
+        value: "true"  # Evita download adicional do Chromium
       - name: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/chromium-browser  # Caminho correto para o Chromium nesta imagem
+        value: /usr/bin/chromium  # Caminho correto no Alpine
