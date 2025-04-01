@@ -4,6 +4,7 @@ const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
 const fs = require('fs');
+const path = require('path');
 
 const app = express();
 
@@ -39,10 +40,23 @@ async function resourceToDataURL(response) {
 async function launchBrowserWithRetry() {
   let browser;
   let attempts = 0;
+
+  // Define o cache dir explicitamente no código como fallback
+  const cacheDir = process.env.PUPPETEER_CACHE_DIR || '/tmp/puppeteer_cache';
+  if (!fs.existsSync(cacheDir)) {
+    console.log(`Criando diretório de cache: ${cacheDir}`);
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+
   while (!browser) { // Tenta lançar o browser infinitamente até sucesso
     attempts++;
     console.log(`Tentativa ${attempts} de lançar o browser...`);
     try {
+      // Tenta encontrar o Chrome instalado no cache
+      const chromePath = fs.existsSync(`${cacheDir}/chrome/linux-*/chrome`)
+        ? `${cacheDir}/chrome/linux-*/chrome`
+        : null;
+
       browser = await puppeteer.launch({
         headless: true,
         args: [
@@ -53,8 +67,8 @@ async function launchBrowserWithRetry() {
           '--disable-gpu',
           '--disable-features=site-per-process'
         ],
-        // Usa o Chrome instalado no cache
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null
+        executablePath: chromePath || null, // Usa o Chrome do cache ou deixa o Puppeteer encontrar
+        dumpio: true // Para logs adicionais do Puppeteer
       });
       console.log('Browser iniciado com sucesso.');
     } catch (err) {
@@ -213,7 +227,7 @@ app.post('/clone', async (req, res) => {
       });
 
       elementsWithBg.each((i, elem) => {
-        const style = $(img).attr('style');
+        const style = $(elem).attr('style');
         const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
         if (match && !match[1].startsWith('data:')) {
           const bgUrl = new URL(match[1], url).href;
