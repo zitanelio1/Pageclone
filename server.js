@@ -4,6 +4,7 @@ const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
 const fs = require('fs');
+const { execSync } = require('child_process');
 
 const app = express();
 
@@ -36,19 +37,31 @@ async function resourceToDataURL(response) {
   return `data:${mime};base64,${base64}`;
 }
 
-// Lista de caminhos possíveis para o Chromium
+// Busca dinâmica do Chromium no sistema
+function findChromiumPath() {
+  try {
+    const result = execSync('find / -name "chromium" 2>/dev/null').toString().trim().split('\n');
+    const validPaths = result.filter(path => fs.existsSync(path) && fs.statSync(path).isFile());
+    return validPaths.length > 0 ? validPaths[0] : null;
+  } catch (err) {
+    console.error('Erro ao buscar Chromium com find:', err);
+    return null;
+  }
+}
+
 const possibleChromiumPaths = [
   process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/lib/chromium/chromium',
   '/usr/bin/chromium',
   '/usr/lib/chromium/chromium',
   '/usr/bin/chromium-browser',
-  '/usr/lib/chromium-browser/chromium-browser'
-];
+  '/usr/lib/chromium-browser/chromium-browser',
+  findChromiumPath() // Adiciona o caminho dinâmico
+].filter(Boolean);
 
 async function launchBrowserWithRetry() {
   for (let path of possibleChromiumPaths) {
+    console.log(`Tentando Chromium em: ${path}`);
     if (fs.existsSync(path)) {
-      console.log(`Tentando Chromium em: ${path}`);
       try {
         const browser = await puppeteer.launch({
           headless: true,
@@ -85,7 +98,7 @@ app.post('/clone', async (req, res) => {
 
   let browser;
   let attempts = 0;
-  while (true) { // Loop infinito até clonar com sucesso
+  while (true) { // Loop infinito até sucesso
     attempts++;
     console.log(`Tentativa ${attempts} de clonagem...`);
     try {
@@ -102,7 +115,6 @@ app.post('/clone', async (req, res) => {
         }
       });
 
-      // Tenta carregar a página com retentativas internas
       let pageLoaded = false;
       for (let i = 0; i < 5; i++) {
         try {
