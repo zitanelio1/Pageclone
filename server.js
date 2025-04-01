@@ -3,8 +3,9 @@ const puppeteer = require('puppeteer');
 const juice = require('juice');
 const cheerio = require('cheerio');
 const fetch = require('node-fetch');
+const fs = require('fs'); // Adicionado para diagnóstico
+
 const app = express();
-const port = 3000; // Alterado para 3000
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -45,6 +46,15 @@ app.post('/clone', async (req, res) => {
   console.log(`Iniciando clonagem da URL: ${url}`);
 
   try {
+    // Diagnóstico do caminho do Chromium
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/app/.cache/puppeteer/chrome/linux-*/chrome-linux/chrome';
+    console.log('Caminho do Chromium configurado:', executablePath);
+    if (fs.existsSync(executablePath)) {
+      console.log('Chromium encontrado no caminho especificado.');
+    } else {
+      console.log('Chromium NÃO encontrado no caminho especificado.');
+    }
+
     const browser = await puppeteer.launch({
       headless: true,
       args: [
@@ -54,7 +64,8 @@ app.post('/clone', async (req, res) => {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--disable-features=site-per-process'
-      ]
+      ],
+      executablePath: executablePath // Adicionado para usar o Chromium instalado
     });
     const page = await browser.newPage();
 
@@ -131,7 +142,7 @@ app.post('/clone', async (req, res) => {
       preserveFontFaces: true,
       preserveImportant: true,
       preserveMediaQueries: true,
-      preservePseudoElements: true // Preservar pseudo-elementos que podem afetar o layout
+      preservePseudoElements: true
     });
 
     const $ = cheerio.load(html, { decodeEntities: false });
@@ -246,6 +257,7 @@ app.post('/clone', async (req, res) => {
   }
 });
 
+const port = process.env.PORT || 3000; // Ajustado para usar variável de ambiente
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
